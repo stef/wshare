@@ -83,4 +83,4 @@ EOF
 
 # serve IP addresses
 echo running dhcp server
-dhcpd3 -f -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
+dhcpd3 -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
