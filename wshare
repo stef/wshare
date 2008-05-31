@@ -1,18 +1,85 @@
-iwconfig eth1 mode ad-hoc
-iwconfig eth1 essid ${1:-tomi}
-#iwconfig eth1 key ${2:-012345678910}
-ifconfig eth1 up
-ifconfig eth1 10.17.17.1
+#!/bin/bash
 
-iptables --flush            # Flush all the rules in filter and nat tables
-iptables --table nat --flush
-iptables --delete-chain
+mode=ad-hoc
+essid=wshared
+subnet=10.17.17
+#exnet=ppp0
+exnet=eth0
+innet=ath0
+ownip=10.17.17.1
+usage="${0##*/} [-m <mode: ad-hoc|master|client>] \
+      [-e <essid:wshare'd>] \
+      [-n subnet <10.17.17>] \
+      [-o <exnet:ppp0>] \
+      [-i <innet:eth0>] \
+      [-a <self.address:subnet.1>] \
+      [-k <key:unset>]"
+
+while getopts ?m:e:n:o:i:a: opt; do
+   case $opt in
+      m) mode=$OPTARG;;
+      e) essid=$OPTARG;;
+      n) subnet=$OPTARG;;
+      o) exnet=$OPTARG;;
+      i) innet=$OPTARG;;
+      a) ownip=$OPTARG;;
+      k) key=$OPTARG;;
+      ?) echo $usage; exit;;
+   esac
+done
+shift `expr $OPTIND - 1`
+
+# switch MODE
+echo switching ${innet} to mode: ${mode}
+if [[ ${innet} == "ath*" ]]; then
+   wlanconfig ${innet} destroy || exit 1
+   case ${mode} in
+      ad-hoc) wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
+      *) wlanconfig ath0 create wlandev wifi0 wlanmode ${mode} || exit 1; break ;;
+   esac
+else
+   iwconfig ${innet} mode ${mode} || exit 1
+fi
+
+# set ESSID
+echo setting essid: ${essid}
+iwconfig ${innet} essid ${essid} || exit 1
+
+# set encryption KEY
+if [[ -n "${key}" ]]; then
+   echo setting encryption key: ${key}
+   iwconfig ${innet} key ${key} || exit 1
+fi
+
+# start shared network
+echo starting ${innet} @ ${ownip}
+ifconfig ${innet} up ${ownip} || exit 1
+
+# NET shared network to external network
+echo enabling nat of ${innet} to ${exnet}
+iptables --table nat --flush || exit 1
 # Delete all chains that are not in default filter and nat table
-iptables --table nat --delete-chain
+iptables --table nat --delete-chain || exit 1
 # Set up IP FORWARDing and Masquerading
-iptables --table nat --append POSTROUTING --out-interface ppp0 -j MASQUERADE
-iptables --append FORWARD --in-interface eth1 -j ACCEPT
+iptables --table nat --append POSTROUTING --out-interface ${exnet} -j MASQUERADE || exit 1
+iptables --append FORWARD --in-interface ${innet} -j ACCEPT || exit 1
 # Enables packet forwarding by kernel 
-echo 1 > /proc/sys/net/ipv4/ip_forward
+echo 1 > /proc/sys/net/ipv4/ip_forward || exit 1
 
-dhcpd3 -cf /etc/dhcp3/dhcpd-wshare.conf -pf /var/run/dhcpd-wshare.pid eth1
+# set up DHCP server for wshared
+echo setting up dhcp server for ${subnet}.0 @ ${innet}
+dhcpcfg=/tmp/dhcp-wshare-$$-${RANDOM}
+cat >${dhcpcfg} <<EOF
+ddns-update-style none;
+default-lease-time 600;
+max-lease-time 7200;
+
+subnet ${subnet}.0 netmask 255.255.255.0 {
+  range ${subnet}.2 ${subnet}.253;
+  option routers ${subnet}.1;
+  option domain-name-servers $(grep nameserver /etc/resolv.conf | sed -e 's/nameserver[      ]*\(.*\)/\1/' |  sed -e "s/$/, /" | tr -d "\n" | sed "s/, $/\n/")
+}
+EOF
+
+# serve IP addresses
+dhcpd3 -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
