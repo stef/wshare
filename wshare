@@ -82,4 +82,5 @@ subnet ${subnet}.0 netmask 255.255.255.0 {
 EOF
 
 # serve IP addresses
-dhcpd3 -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
+echo running dhcp server
+dhcpd3 -f -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
