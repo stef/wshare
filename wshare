@@ -1,0 +1,18 @@
+iwconfig eth1 mode ad-hoc
+iwconfig eth1 essid ${1:-tomi}
+#iwconfig eth1 key ${2:-012345678910}
+ifconfig eth1 up
+ifconfig eth1 10.17.17.1
+
+iptables --flush            # Flush all the rules in filter and nat tables
+iptables --table nat --flush
+iptables --delete-chain
+# Delete all chains that are not in default filter and nat table
+iptables --table nat --delete-chain
+# Set up IP FORWARDing and Masquerading
+iptables --table nat --append POSTROUTING --out-interface ppp0 -j MASQUERADE
+iptables --append FORWARD --in-interface eth1 -j ACCEPT
+# Enables packet forwarding by kernel 
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+dhcpd3 -cf /etc/dhcp3/dhcpd-wshare.conf -pf /var/run/dhcpd-wshare.pid eth1
