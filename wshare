@@ -1,8 +1,10 @@
 #!/bin/bash
 
 . ${0%%wshare}wshare.conf
+client=true
 
-usage="${0##*/} [-m <mode: ad-hoc|master|client>] \
+usage="${0##*/} [-M] \
+      [-m <mode: ad-hoc|master>] \
       [-e <essid:wshare'd>] \
       [-n subnet <10.17.17>] \
       [-o <exnet:ppp0>] \
@@ -10,8 +12,9 @@ usage="${0##*/} [-m <mode: ad-hoc|master|client>] \
       [-a <self.address:subnet.1>] \
       [-k <key:unset>]"
 
-while getopts ?m:e:n:o:i:a: opt; do
+while getopts ?Mm:e:n:o:i:a: opt; do
    case $opt in
+      M) client=false;;
       m) mode=$OPTARG;;
       e) essid=$OPTARG;;
       n) subnet=$OPTARG;;
@@ -25,9 +28,11 @@ done
 shift `expr $OPTIND - 1`
 
 # switch MODE
+# FIXME clients in master mode make no sense. do they?
 echo switching ${innet} to mode: ${mode}
 if [[ ${innet} == "ath*" ]]; then
    wlanconfig ${innet} destroy || exit 1
+   # madwifi calls the mode adhoc not ad-hoc...
    case ${mode} in
       ad-hoc) wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
       *) wlanconfig ath0 create wlandev wifi0 wlanmode ${mode} || exit 1; break ;;
@@ -37,6 +42,7 @@ else
 fi
 
 # set ESSID
+# TBA clients in ad-hoc and essid? necessary?
 echo setting essid: ${essid}
 iwconfig ${innet} essid ${essid} || exit 1
 
@@ -46,36 +52,42 @@ if [[ -n "${key}" ]]; then
    iwconfig ${innet} key ${key} || exit 1
 fi
 
-# start shared network
-echo starting ${innet} @ ${ownip}
-ifconfig ${innet} up ${ownip} || exit 1
+if $client; then
+   ifconfig ${innet} up || exit 1
+   dhclient ${innet} || exit 1
+else
+   # start shared network
+   echo starting ${innet} @ ${ownip}
+   ifconfig ${innet} up ${ownip} || exit 1
 
-# NET shared network to external network
-echo enabling nat of ${innet} to ${exnet}
-iptables --table nat --flush || exit 1
-# Delete all chains that are not in default filter and nat table
-iptables --table nat --delete-chain || exit 1
-# Set up IP FORWARDing and Masquerading
-iptables --table nat --append POSTROUTING --out-interface ${exnet} -j MASQUERADE || exit 1
-iptables --append FORWARD --in-interface ${innet} -j ACCEPT || exit 1
-# Enables packet forwarding by kernel 
-echo 1 > /proc/sys/net/ipv4/ip_forward || exit 1
+   # NET shared network to external network
+   echo enabling nat of ${innet} to ${exnet}
+   iptables --table nat --flush || exit 1
+   # Delete all chains that are not in default filter and nat table
+   iptables --table nat --delete-chain || exit 1
+   # Set up IP FORWARDing and Masquerading
+   iptables --table nat --append POSTROUTING --out-interface ${exnet} -j MASQUERADE || exit 1
+   iptables --append FORWARD --in-interface ${innet} -j ACCEPT || exit 1
+   # Enables packet forwarding by kernel 
+   echo 1 > /proc/sys/net/ipv4/ip_forward || exit 1
 
-# set up DHCP server for wshared
-echo setting up dhcp server for ${subnet}.0 @ ${innet}
-dhcpcfg=/tmp/dhcp-wshare-$$-${RANDOM}
-cat >${dhcpcfg} <<EOF
+   # set up DHCP server for wshared
+   echo setting up dhcp server for ${subnet}.0 @ ${innet}
+   dhcpcfg=/tmp/dhcp-wshare-$$-${RANDOM}
+   cat >${dhcpcfg} <<EOF
 ddns-update-style none;
 default-lease-time 600;
 max-lease-time 7200;
 
 subnet ${subnet}.0 netmask 255.255.255.0 {
-  range ${subnet}.2 ${subnet}.253;
-  option routers ${subnet}.1;
-  option domain-name-servers $(grep nameserver /etc/resolv.conf | sed -e 's/nameserver[      ]*\(.*\)/\1/' |  sed -e "s/$/, /" | tr -d "\n" | sed "s/, $/\n/")
+range ${subnet}.2 ${subnet}.253;
+option routers ${subnet}.1;
+option domain-name $(grep '^domain ' /etc/resolv.conf | sed -e 's/^domain[      ]*\(.*\)/\1/')
+option domain-name-servers $(grep '^nameserver ' /etc/resolv.conf | sed -e 's/^nameserver[      ]*\(.*\)/\1/' |  sed -e "s/$/, /" | tr -d "\n" | sed "s/, $/\n/")
 }
 EOF
 
-# serve IP addresses
-echo running dhcp server
-dhcpd3 -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
+   # serve IP addresses
+   echo running dhcp server
+   dhcpd3 -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
+fi
