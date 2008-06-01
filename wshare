@@ -28,17 +28,18 @@ done
 shift `expr $OPTIND - 1`
 
 # switch MODE
-# FIXME clients in master mode make no sense. do they?
-echo switching ${innet} to mode: ${mode}
-if [[ ${innet} == "ath*" ]]; then
-   wlanconfig ${innet} destroy || exit 1
-   # madwifi calls the mode adhoc not ad-hoc...
-   case ${mode} in
-      ad-hoc) wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
-      *) wlanconfig ath0 create wlandev wifi0 wlanmode ${mode} || exit 1; break ;;
-   esac
-else
-   iwconfig ${innet} mode ${mode} || exit 1
+if ! ${client} || [[ ${mode} -ne "master" ]]; then
+   echo switching ${innet} to mode: ${mode}
+   if [[ ${innet} == "ath*" ]]; then
+      wlanconfig ${innet} destroy || exit 1
+      # madwifi calls the mode adhoc not ad-hoc...
+      case ${mode} in
+         ad-hoc) wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
+         *) wlanconfig ath0 create wlandev wifi0 wlanmode ${mode} || exit 1; break ;;
+      esac
+   else
+      iwconfig ${innet} mode ${mode} || exit 1
+   fi
 fi
 
 # set ESSID
