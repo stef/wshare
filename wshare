@@ -1,12 +1,7 @@
 #!/bin/bash
 
-mode=ad-hoc
-essid=wshared
-subnet=10.17.17
-#exnet=ppp0
-exnet=eth0
-innet=ath0
-ownip=10.17.17.1
+. ${0%%wshare}wshare.conf
+
 usage="${0##*/} [-m <mode: ad-hoc|master|client>] \
       [-e <essid:wshare'd>] \
       [-n subnet <10.17.17>] \
