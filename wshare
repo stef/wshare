@@ -28,18 +28,16 @@ done
 shift `expr $OPTIND - 1`
 
 # switch MODE
-if ! ${client} || [[ ${mode} -ne "master" ]]; then
-   echo switching ${innet} to mode: ${mode}
-   if [[ ${innet} == "ath*" ]]; then
-      wlanconfig ${innet} destroy || exit 1
-      # madwifi calls the mode adhoc not ad-hoc...
-      case ${mode} in
-         ad-hoc) wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
-         *) wlanconfig ath0 create wlandev wifi0 wlanmode ${mode} || exit 1; break ;;
-      esac
-   else
-      iwconfig ${innet} mode ${mode} || exit 1
-   fi
+echo switching ${innet} to mode: ${mode}
+if [[ ${innet} == "ath0" ]]; then
+   wlanconfig ${innet} destroy || exit 1
+   # madwifi calls the mode adhoc not ad-hoc...
+   case ${mode} in
+      ad-hoc) wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
+      *) wlanconfig ath0 create wlandev wifi0 wlanmode ${mode} || exit 1; break ;;
+   esac
+else
+   iwconfig ${innet} mode ${mode} || exit 1
 fi
 
 # set ESSID
