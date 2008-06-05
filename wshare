@@ -79,16 +79,17 @@ else
 ddns-update-style none;
 default-lease-time 600;
 max-lease-time 7200;
+log-facility local7;
+
+option routers ${subnet}.1;
+option domain-name-servers $(grep '^nameserver ' /etc/resolv.conf | sed -e 's/^nameserver[      ]*\(.*\)/\1/' |  sed -e "s/$/, /" | tr -d "\n" | sed "s/, $/\n/") ;
 
 subnet ${subnet}.0 netmask 255.255.255.0 {
-range ${subnet}.2 ${subnet}.253;
-option routers ${subnet}.1;
-option domain-name $(grep '^domain ' /etc/resolv.conf | sed -e 's/^domain[      ]*\(.*\)/\1/')
-option domain-name-servers $(grep '^nameserver ' /etc/resolv.conf | sed -e 's/^nameserver[      ]*\(.*\)/\1/' |  sed -e "s/$/, /" | tr -d "\n" | sed "s/, $/\n/")
+    range ${subnet}.2 ${subnet}.253;
 }
 EOF
 
    # serve IP addresses
    echo running dhcp server
-   dhcpd3 -cf ${dhcpcfg} ${dhcpcfg}.pid ${innet} || exit 1
+   dhcpd3 -cf ${dhcpcfg} -pf ${dhcpcfg}.pid ${innet} || exit 1
 fi
