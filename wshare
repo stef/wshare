@@ -22,7 +22,10 @@
 ### Common settings
 
 # set internal network, over which the external is shared
-innet=ath0
+# try to automatically select the first wireless device from /proc/net/wireless
+innet=$(head -3 /proc/net/wireless 2>/dev/null | tail -1 | cut -f1 -d: | tr -d " ")
+# if automatic detection fails, use ath0 as default
+innet=${innet:-ath0}
 # set the essid of the shared network master
 essid=wshared
 
