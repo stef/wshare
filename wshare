@@ -1,10 +1,34 @@
 #!/bin/bash
+#
+# wshare v1.0 - gui agnostic sharing of your network connections 
+#
+#     Copyright (C) 2008  Stefan Marsiske
+# 
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-. ${0%%wshare}wshare.conf
+# none of the below might exist, so we route any error messages to our logging
+# daemon /dev/null
+# global config
+. /etc/wshare.conf 2>/dev/null
+# personal config
+. $HOME/.wshare.conf 2>/dev/null
+# testing config, same dir as script, shmagic.
+. ${0%%wshare}wshare.conf 2>/dev/null
+
 client=true
 
-usage="${0##*/} [-M] \
-      [-m <mode: ad-hoc|master>] \
+usage="${0##*/} [-m] \
       [-e <essid:wshare'd>] \
       [-n subnet <10.17.17>] \
       [-o <exnet:ppp0>] \
@@ -14,8 +38,7 @@ usage="${0##*/} [-M] \
 
 while getopts ?Mm:e:n:o:i:a: opt; do
    case $opt in
-      M) client=false;;
-      m) mode=$OPTARG;;
+      m) client=false;;
       e) essid=$OPTARG;;
       n) subnet=$OPTARG;;
       o) exnet=$OPTARG;;
@@ -31,13 +54,10 @@ shift `expr $OPTIND - 1`
 echo switching ${innet} to mode: ${mode}
 if [[ ${innet} == "ath0" ]]; then
    wlanconfig ${innet} destroy || exit 1
-   # madwifi calls the mode adhoc not ad-hoc...
-   case ${mode} in
-      ad-hoc) wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
-      *) wlanconfig ath0 create wlandev wifi0 wlanmode ${mode} || exit 1; break ;;
-   esac
+   # madwifi calls the mode adhoc, not ad-hoc...
+   wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
 else
-   iwconfig ${innet} mode ${mode} || exit 1
+   iwconfig ${innet} mode ad-hoc || exit 1
 fi
 
 # set ESSID
