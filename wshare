@@ -45,8 +45,8 @@ exnet=ppp0
 ownip=10.17.17.1
 
 #------------------
-# none of the below might exist, so we route any error messages to our logging
-# daemon /dev/null
+# none of the files below might exist, so we route any error messages to our
+# logging daemon /dev/null
 # global config
 . /etc/wshare.conf 2>/dev/null
 # personal config
@@ -54,6 +54,7 @@ ownip=10.17.17.1
 # testing config, same dir as script, shmagic.
 . ${0%%wshare}wshare.conf 2>/dev/null
 
+# default behaviour
 client=true
 
 usage="${0##*/} [-m] \
@@ -64,7 +65,7 @@ usage="${0##*/} [-m] \
       [-a <self.address:subnet.1>] \
       [-k <key:unset>]"
 
-while getopts ?Mm:e:n:o:i:a: opt; do
+while getopts ?m:e:n:o:i:a: opt; do
    case $opt in
       m) client=false;;
       e) essid=$OPTARG;;
@@ -79,7 +80,7 @@ done
 shift `expr $OPTIND - 1`
 
 # switch MODE
-echo switching ${innet} to mode: ${mode}
+echo switching ${innet} to mode: ad-hoc
 if [[ ${innet} == "ath0" ]]; then
    wlanconfig ${innet} destroy || exit 1
    # madwifi calls the mode adhoc, not ad-hoc...
