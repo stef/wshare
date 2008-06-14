@@ -17,6 +17,31 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# default config
+#------------------
+### Common settings
+
+# set internal network, over which the external is shared
+innet=ath0
+# set the essid of the shared network master
+essid=wshared
+
+#------------------
+### Master settings
+
+# specify the subnet of the internal network 
+# this must be in the /24 range currently...
+# so only specify networks with 3 of four octets
+subnet=10.17.17
+
+# specify which network to share, this is the device that connects to the
+# internet
+exnet=ppp0
+
+# specify Master IP address
+ownip=10.17.17.1
+
+#------------------
 # none of the below might exist, so we route any error messages to our logging
 # daemon /dev/null
 # global config
