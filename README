@@ -1,0 +1,92 @@
+wshare
+======
+
+   wshare is a simple program to share an existing network connection. There are
+   two modes, *master* and *client*. The master shares an existing network
+   connection (probably to the internet) via an unused wireless device. The client
+   can connect either via the operating system provided facilities or this script
+   in client mode - which is the default. To enable a master supply the the *-m*
+   parameter to the script.
+
+   wshare is currently *linux only*, released under the *GPLv3* and avaible via git:
+   git clone git://github.com/stef/wshare.git
+
+   the script itself is very short, 
+   "download it directly":http://github.com/stef/wshare/tarball/master
+
+behind the scenes
+
+   In master mode (*-m*), 
+   # the wireless device is switched to ad-hoc mode
+   # the essid is set
+   # optionally - an encryption key is set (*experimental* WEP only currently)
+   # the device is brought up via _ifconfig_
+   # NAT is set up
+   # dhcpd3 server is configured and brought up to provide network and nameserver settings.
+
+   In client mode,  
+   # the wireless device is switched to ad-hoc mode
+   # the essid is set
+   # optionally - an encryption key is set (*experimental* WEP only currently)
+   # the device is brought up via _ifconfig_
+   # dhclient is run to retrieve shared network information from the Master dhcpd3 server
+
+example
+
+   to share a network, either set the parameters in the config file, or adapt the call below:
+      # wshare -m -o ppp0 -i eth0
+   the important switch is *-m*, which is necessary for enabling the master mode.
+ 
+   to connect to such a shared network simply call 
+      # wshare -i eth0
+   or you could use NetworkManager under linux, or your operating system provided facilities.
+
+Common settings
+
+   the following parameters are to be set either via a configuration file
+   (/etc/wshare.conf, ~/.wshare.conf or in the same directory where the wshare
+   script is located) or or superseding these via command line parameters. 
+
+   Common parameters are necessary for both master and client operation.
+
+      innet
+
+      set internal network, over which the external is shared. this **must** be a
+      wireless device, if none is set, the script tries to use the first device from
+      /proc/net/wireless.
+      * default: ath0
+      * command line: -i &lt;device&gt;
+
+      essid
+
+      set the essid of the shared network master
+      * default: wshared
+      * command line: -e &lt;essid&gt;
+
+      key
+
+      specify the key for WEP encryption of the internal network. beware this is yet untested and probably not working
+      * default: unset
+      * command line: -k &lt;key&gt;
+
+   Master settings
+
+      these settings are only necessary for nodes acting as masters.
+
+      subnet
+
+      specify the subnet of the internal network. this must be in the /24 range currently... thus it is only possible to specify networks with 3 of four octets
+      * default: 10.17.17
+      * command line: -n &lt;X.X.X&gt;
+
+      exnet
+
+      specify which network to share, this is the device that connects to the internet
+      * default: ppp0
+      * command line: -o &lt;device&gt;
+
+      ownip
+
+      specify Master IP address, defaults to &lt;subnet&gt;.1
+      * default: 10.17.17.1
+      * command line: -a &lt;X.X.X.X&gt;
