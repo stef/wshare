@@ -58,12 +58,19 @@ ownip=10.17.17.1
 client=true
 
 usage="${0##*/} [-m] \
-      [-e <essid:wshare'd>] \
+      [-e <essid:wshared>] \
       [-n subnet <10.17.17>] \
       [-o <exnet:ppp0>] \
       [-i <innet:eth0>] \
       [-a <self.address:subnet.1>] \
       [-k <key:unset>]"
+
+# only root can do this
+[[ $(id -u) -ne 0 ]] && { 
+   echo $usage
+   echo "error: please run ${0##*/} as root"
+   exit 1;
+}
 
 while getopts ?m:e:n:o:i:a: opt; do
    case $opt in
@@ -74,7 +81,7 @@ while getopts ?m:e:n:o:i:a: opt; do
       i) innet=$OPTARG;;
       a) ownip=$OPTARG;;
       k) key=$OPTARG;;
-      ?) echo $usage; exit;;
+      ?|h) echo $usage; exit;;
    esac
 done
 shift `expr $OPTIND - 1`
