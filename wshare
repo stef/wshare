@@ -48,11 +48,11 @@ ownip=10.17.17.1
 # none of the files below might exist, so we route any error messages to our
 # logging daemon /dev/null
 # global config
-. /etc/wshare.conf 2>/dev/null
+[[ -r /etc/wshare.conf ]] && . /etc/wshare.conf 2>/dev/null
 # personal config
-. $HOME/.wshare.conf 2>/dev/null
+[[ -r $HOME/.wshare.conf ]] && . $HOME/.wshare.conf 2>/dev/null
 # testing config, same dir as script, shmagic.
-. ${0%%wshare}wshare.conf 2>/dev/null
+[[ -r ${0%%wshare}wshare.conf ]] && . ${0%%wshare}wshare.conf 2>/dev/null
 
 # default behaviour
 client=true
@@ -91,7 +91,7 @@ echo switching ${innet} to mode: ad-hoc
 if [[ ${innet} == "ath0" ]]; then
    wlanconfig ${innet} destroy || exit 1
    # madwifi calls the mode adhoc, not ad-hoc...
-   wlanconfig ath0 create wlandev wifi0 wlanmode adhoc; break ;;
+   wlanconfig ath0 create wlandev wifi0 wlanmode adhoc
 else
    iwconfig ${innet} mode ad-hoc || exit 1
 fi
